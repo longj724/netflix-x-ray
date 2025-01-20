@@ -24,7 +24,6 @@ class NetflixVideoTitleTracker {
   }
 
   private handleMutations(mutations: MutationRecord[]): void {
-    // Only proceed if we're on a watch page
     if (!window.location.href.includes('netflix.com/watch')) {
       return;
     }
@@ -76,28 +75,28 @@ class NetflixVideoTitleTracker {
     this.callbacks.forEach((callback) => callback(title));
   }
 
-  // Public method to subscribe to title changes
   public onTitleChange(callback: VideoTitleCallback): void {
     this.callbacks.push(callback);
   }
 
-  // Public method to unsubscribe
   public offTitleChange(callback: VideoTitleCallback): void {
     this.callbacks = this.callbacks.filter((cb) => cb !== callback);
   }
 }
 
-// Usage example:
 const titleTracker = new NetflixVideoTitleTracker();
 
-// Subscribe to title changes
 titleTracker.onTitleChange(async (title: string) => {
   console.log('New video title detected:', title);
 
   const result = await chrome.storage.local.get('currentVideo');
   const storedVideo = result.currentVideo as VideoData | undefined;
+
   if (!storedVideo || storedVideo.title !== title) {
     console.log('saving');
+
+    const parsedTitle = NetflixTitleParser.parse(title);
+
     chrome.storage.local.set({
       currentVideo: {
         title,
@@ -106,13 +105,100 @@ titleTracker.onTitleChange(async (title: string) => {
       },
     });
 
-    chrome.runtime.sendMessage({
-      type: 'new_video',
-      title,
-    });
+    if (parsedTitle.type === 'tvshow') {
+      chrome.runtime.sendMessage({
+        type: 'new_tvshow',
+        title: parsedTitle.title,
+        episodeNumber: parsedTitle.episodeNumber,
+        episodeTitle: parsedTitle.episodeTitle,
+      });
+    } else {
+      chrome.runtime.sendMessage({
+        type: 'new_movie',
+        title: parsedTitle.title,
+      });
+    }
   } else {
     console.log('not saving');
   }
 });
 
-export { NetflixVideoTitleTracker };
+interface ParsedMovie {
+  type: 'movie';
+  title: string;
+}
+
+interface ParsedTVShow {
+  type: 'tvshow';
+  title: string;
+  episodeNumber: number;
+  episodeTitle: string;
+}
+
+type ParsedTitle = ParsedMovie | ParsedTVShow;
+
+class NetflixTitleParser {
+  /**
+   * Parses a Netflix title to extract show/movie information
+   * @param rawTitle The raw title from Netflix (e.g., "Band of BrothersE7The Breaking Point")
+   * @returns ParsedTitle object containing the parsed information
+   */
+  public static parse(rawTitle: string): ParsedTitle {
+    // Common patterns for TV show titles:
+    // "Show NameE1Episode Name"
+    // "Show NameS1E1Episode Name"
+    // "Show Name: E1Episode Name"
+    // "Show Name - E1Episode Name"
+
+    // First, clean up the title
+    const cleanTitle = rawTitle.trim();
+
+    // Check for episode indicators
+    const episodePatterns = [
+      /^(.*?)E(\d+)(.*)$/i, // Basic pattern: ShowE1Episode
+      /^(.*?)S\d+E(\d+)(.*)$/i, // With season: ShowS1E1Episode
+      /^(.*?)[:\s-]\s*E(\d+)(.*)$/i, // With separator: Show - E1Episode
+    ];
+
+    for (const pattern of episodePatterns) {
+      const match = cleanTitle.match(pattern);
+      if (match) {
+        // We found a TV show pattern
+        const [_, showTitle, episodeNum, episodeTitle] = match;
+
+        return {
+          type: 'tvshow',
+          title: showTitle.trim(),
+          episodeNumber: parseInt(episodeNum, 10),
+          episodeTitle: episodeTitle.trim(),
+        };
+      }
+    }
+
+    // If no TV show pattern was found, treat it as a movie
+    return {
+      type: 'movie',
+      title: cleanTitle,
+    };
+  }
+
+  /**
+   * Attempts to extract season number if present
+   * @param title Full title string
+   * @returns season number or undefined
+   */
+  private static extractSeason(title: string): number | undefined {
+    const seasonPattern = /S(\d+)E\d+/i;
+    const match = title.match(seasonPattern);
+    return match ? parseInt(match[1], 10) : undefined;
+  }
+
+  /**
+   * Validates if a string matches TV show patterns
+   * @param title Title to check
+   * @returns boolean indicating if it's likely a TV show
+   */
+  public static isTVShow(title: string): boolean {
+    return /E\d+/i.test(title);
+  }
+}
