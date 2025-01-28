@@ -92,35 +92,35 @@ titleTracker.onTitleChange(async (title: string) => {
   const result = await chrome.storage.local.get('currentVideo');
   const storedVideo = result.currentVideo as VideoData | undefined;
 
-  if (!storedVideo || storedVideo.title !== title) {
-    console.log('saving');
+  // if (!storedVideo || storedVideo.title !== title) {
+  console.log('saving');
 
-    const parsedTitle = NetflixTitleParser.parse(title);
+  const parsedTitle = NetflixTitleParser.parse(title);
 
-    chrome.storage.local.set({
-      currentVideo: {
-        title,
-        timestamp: Date.now(),
-        url: window.location.href,
-      },
+  chrome.storage.local.set({
+    currentVideo: {
+      title,
+      timestamp: Date.now(),
+      url: window.location.href,
+    },
+  });
+
+  if (parsedTitle.type === 'tvshow') {
+    chrome.runtime.sendMessage({
+      type: 'new_tvshow',
+      title: parsedTitle.title,
+      episodeNumber: parsedTitle.episodeNumber,
+      episodeTitle: parsedTitle.episodeTitle,
     });
-
-    if (parsedTitle.type === 'tvshow') {
-      chrome.runtime.sendMessage({
-        type: 'new_tvshow',
-        title: parsedTitle.title,
-        episodeNumber: parsedTitle.episodeNumber,
-        episodeTitle: parsedTitle.episodeTitle,
-      });
-    } else {
-      chrome.runtime.sendMessage({
-        type: 'new_movie',
-        title: parsedTitle.title,
-      });
-    }
   } else {
-    console.log('not saving');
+    chrome.runtime.sendMessage({
+      type: 'new_movie',
+      title: parsedTitle.title,
+    });
   }
+  // } else {
+  //   console.log('not saving');
+  // }
 });
 
 interface ParsedMovie {

@@ -1,5 +1,5 @@
 // External Dependencies
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 // Internal Dependencies
@@ -9,14 +9,54 @@ import { TriviaItem } from '@src/components/TriviaItem';
 
 type Tab = 'in-scene' | 'cast' | 'trivia';
 
+interface MediaData {
+  mediaType: 'movie' | 'tv';
+  title: string;
+  timestamp?: number;
+  url?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+}
+
+const API_URL = 'http://localhost:9999';
+
 export default function Panel() {
   const [activeTab, setActiveTab] = useState<Tab>('cast');
+  const [mediaData, setMediaData] = useState<MediaData | null>(null);
+
+  useEffect(() => {
+    // Listen for messages from the background script
+    const messageListener = (message: any) => {
+      if (message.type === 'update_panel') {
+        setMediaData(message.data);
+      }
+    };
+
+    console.log('running panel');
+
+    chrome.runtime.onMessage.addListener(messageListener);
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(messageListener);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
       <header className="flex items-center justify-between p-4 border-b border-gray-800">
-        <h1 className="text-2xl font-bold">X-Ray</h1>
+        <div>
+          <h1 className="text-2xl font-bold">X-Ray</h1>
+          {mediaData && (
+            <p className="text-sm text-gray-400">
+              {mediaData.title}
+              {mediaData.mediaType === 'tv' &&
+                mediaData.seasonNumber &&
+                mediaData.episodeNumber &&
+                ` • S${mediaData.seasonNumber}:E${mediaData.episodeNumber}`}
+            </p>
+          )}
+        </div>
         <div className="flex gap-4">
           <button>
             <X className="w-6 h-6" />
