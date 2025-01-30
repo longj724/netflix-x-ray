@@ -43,15 +43,10 @@ export default function Panel() {
 
   useEffect(() => {
     const messageListener = (message: any) => {
+      // Arrive here when panel is open and new data is received
       if (message.type === 'update_panel_tv_show') {
-        console.log('tv show data in panel ', message.data);
-        // Save data to storage when received
-        chrome.storage.local.set({ currentMediaData: message.data });
         setMediaData(message.data);
       } else if (message.type === 'update_panel_movie') {
-        console.log('data in panel ', message.data);
-        // Save data to storage when received
-        chrome.storage.local.set({ currentMediaData: message.data });
         setMediaData(message.data);
       }
     };
@@ -63,7 +58,6 @@ export default function Panel() {
     };
   }, []);
 
-  // Handle close button click
   const handleClose = () => {
     chrome.runtime.sendMessage({ type: 'close_panel' });
   };

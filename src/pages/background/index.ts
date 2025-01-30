@@ -19,25 +19,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     handleNewTVShow(message as TVShowData);
   } else if (message.type === 'close_panel') {
     chrome.sidePanel.setOptions({ enabled: false });
+    chrome.sidePanel.setOptions({ enabled: true });
   }
 });
 
-async function handleNewMovie(movieData: MovieData): Promise<void> {
+async function handleNewMovie(netflixData: MovieData): Promise<void> {
   try {
     const movieResponse = await fetch(
       `http://localhost:9999/search/movie?title=${encodeURIComponent(
-        movieData.title
+        netflixData.title
       )}`
     );
 
-    const data = await movieResponse.json();
+    const movieData = await movieResponse.json();
+
+    chrome.storage.local.set({
+      currentMediaData: { ...movieData, mediaType: 'movie' },
+    });
 
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tabs[0]?.id) {
       chrome.runtime.sendMessage({
         type: 'update_panel_movie',
         data: {
-          ...data,
+          ...movieData,
         },
       });
     }
@@ -55,6 +60,10 @@ async function handleNewTVShow(netflixData: TVShowData): Promise<void> {
     );
 
     const showData = await showResponse.json();
+
+    chrome.storage.local.set({
+      currentMediaData: { ...showData, mediaType: 'tv' },
+    });
 
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tabs[0]?.id) {
