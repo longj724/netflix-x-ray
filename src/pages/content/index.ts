@@ -1,5 +1,3 @@
-console.log('content script loaded');
-
 interface VideoTitleCallback {
   (title: string): void;
 }
@@ -87,40 +85,38 @@ class NetflixVideoTitleTracker {
 const titleTracker = new NetflixVideoTitleTracker();
 
 titleTracker.onTitleChange(async (title: string) => {
-  console.log('New video title detected:', title);
-
   const result = await chrome.storage.local.get('currentVideo');
   const storedVideo = result.currentVideo as VideoData | undefined;
 
-  // if (!storedVideo || storedVideo.title !== title) {
-  console.log('saving');
+  if (!storedVideo || storedVideo.title !== title) {
+    console.log('saving');
 
-  const parsedTitle = NetflixTitleParser.parse(title);
+    const parsedTitle = NetflixTitleParser.parse(title);
 
-  chrome.storage.local.set({
-    currentVideo: {
-      title,
-      timestamp: Date.now(),
-      url: window.location.href,
-    },
-  });
-
-  if (parsedTitle.type === 'tvshow') {
-    chrome.runtime.sendMessage({
-      type: 'new_tvshow',
-      title: parsedTitle.title,
-      episodeNumber: parsedTitle.episodeNumber,
-      episodeTitle: parsedTitle.episodeTitle,
+    chrome.storage.local.set({
+      currentVideo: {
+        title,
+        timestamp: Date.now(),
+        url: window.location.href,
+      },
     });
-  } else {
-    chrome.runtime.sendMessage({
-      type: 'new_movie',
-      title: parsedTitle.title,
-    });
+
+    console.log('parsedTitle is ', parsedTitle);
+
+    if (parsedTitle.type === 'tvshow') {
+      chrome.runtime.sendMessage({
+        type: 'new_tvshow',
+        title: parsedTitle.title,
+        episodeNumber: parsedTitle.episodeNumber,
+        episodeTitle: parsedTitle.episodeTitle,
+      });
+    } else {
+      chrome.runtime.sendMessage({
+        type: 'new_movie',
+        title: parsedTitle.title,
+      });
+    }
   }
-  // } else {
-  //   console.log('not saving');
-  // }
 });
 
 interface ParsedMovie {

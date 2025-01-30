@@ -18,21 +18,20 @@ interface MediaData {
   episodeNumber?: number;
 }
 
-const API_URL = 'http://localhost:9999';
-
 export default function Panel() {
   const [activeTab, setActiveTab] = useState<Tab>('cast');
   const [mediaData, setMediaData] = useState<MediaData | null>(null);
 
   useEffect(() => {
-    // Listen for messages from the background script
     const messageListener = (message: any) => {
-      if (message.type === 'update_panel') {
+      if (message.type === 'update_panel_tv_show') {
+        console.log('tv show data in panel ', message.data);
+        setMediaData(message.data);
+      } else if (message.type === 'update_panel_movie') {
+        console.log('data in panel ', message.data);
         setMediaData(message.data);
       }
     };
-
-    console.log('running panel');
 
     chrome.runtime.onMessage.addListener(messageListener);
 

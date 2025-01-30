@@ -1,7 +1,5 @@
 interface MovieData {
   title: string;
-  timestamp: number;
-  url: string;
 }
 
 interface TVShowData {
@@ -24,14 +22,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function handleNewMovie(movieData: MovieData): Promise<void> {
   try {
-    // Send movie data to the panel
+    const movieResponse = await fetch(
+      `http://localhost:9999/search/movie?title=${encodeURIComponent(
+        movieData.title
+      )}`
+    );
+
+    const data = await movieResponse.json();
+
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tabs[0]?.id) {
       chrome.runtime.sendMessage({
-        type: 'update_panel',
+        type: 'update_panel_movie',
         data: {
-          mediaType: 'movie',
-          ...movieData,
+          ...data,
         },
       });
     }
@@ -40,16 +44,22 @@ async function handleNewMovie(movieData: MovieData): Promise<void> {
   }
 }
 
-async function handleNewTVShow(tvShowData: TVShowData): Promise<void> {
+async function handleNewTVShow(netflixData: TVShowData): Promise<void> {
   try {
-    // Send TV show data to the panel
+    const showResponse = await fetch(
+      `http://localhost:9999/search/tv?title=${encodeURIComponent(
+        netflixData.title
+      )}&episodeTitle=${encodeURIComponent(netflixData.episodeTitle)}`
+    );
+
+    const showData = await showResponse.json();
+
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tabs[0]?.id) {
       chrome.runtime.sendMessage({
-        type: 'update_panel',
+        type: 'update_panel_tv_show',
         data: {
-          mediaType: 'tvShow',
-          ...tvShowData,
+          ...showData,
         },
       });
     }
