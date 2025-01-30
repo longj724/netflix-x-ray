@@ -19,8 +19,15 @@ interface MediaData {
   overview?: string;
   vote_average?: number;
   poster_path?: string;
+  name?: string;
+  still_path?: string;
   credits?: {
     cast: Array<{
+      name: string;
+      character: string;
+      profile_path?: string;
+    }>;
+    guest_stars?: Array<{
       name: string;
       character: string;
       profile_path?: string;
@@ -62,6 +69,8 @@ export default function Panel() {
     chrome.runtime.sendMessage({ type: 'close_panel' });
   };
 
+  console.log('mediaData', mediaData);
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
@@ -70,11 +79,18 @@ export default function Panel() {
           <h1 className="text-2xl font-bold">X-Ray</h1>
           {mediaData && (
             <p className="text-sm text-gray-400">
-              {mediaData.title}
-              {mediaData.mediaType === 'tv' &&
-                mediaData.seasonNumber &&
-                mediaData.episodeNumber &&
-                ` • S${mediaData.seasonNumber}:E${mediaData.episodeNumber}`}
+              {mediaData.mediaType === 'tv' ? (
+                <>
+                  {mediaData.name}
+                  {mediaData.seasonNumber && mediaData.episodeNumber && (
+                    <span className="ml-2">
+                      S{mediaData.seasonNumber}:E{mediaData.episodeNumber}
+                    </span>
+                  )}
+                </>
+              ) : (
+                mediaData.title
+              )}
             </p>
           )}
         </div>
@@ -89,12 +105,21 @@ export default function Panel() {
       {mediaData && (
         <div className="p-4 border-b border-gray-800">
           <div className="flex gap-4">
-            {mediaData.poster_path && (
+            {mediaData.mediaType === 'movie' && mediaData.poster_path ? (
               <img
                 src={`https://image.tmdb.org/t/p/w200${mediaData.poster_path}`}
                 alt={`${mediaData.title} poster`}
                 className="w-32 h-auto rounded-md"
               />
+            ) : (
+              mediaData.mediaType === 'tv' &&
+              mediaData.still_path && (
+                <img
+                  src={`https://image.tmdb.org/t/p/w300${mediaData.still_path}`}
+                  alt={`${mediaData.name} episode still`}
+                  className="w-48 h-auto rounded-md"
+                />
+              )
             )}
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
@@ -137,20 +162,47 @@ export default function Panel() {
 
       {/* Content */}
       <div className="p-4 space-y-4">
-        {activeTab === 'cast' && mediaData?.credits?.cast && (
+        {activeTab === 'cast' && (
           <>
-            {mediaData.credits.cast.map((actor, index) => (
-              <CastMember
-                key={index}
-                name={actor.name}
-                role={actor.character}
-                imageUrl={
-                  actor.profile_path
-                    ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
-                    : 'https://place-hold.it/100x100'
-                }
-              />
-            ))}
+            {/* Main Cast */}
+            {mediaData?.credits?.cast && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Cast</h3>
+                {mediaData.credits.cast.map((actor, index) => (
+                  <CastMember
+                    key={index}
+                    name={actor.name}
+                    role={actor.character}
+                    imageUrl={
+                      actor.profile_path
+                        ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
+                        : 'https://place-hold.it/100x100'
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Guest Stars */}
+            {mediaData?.mediaType === 'tv' &&
+              mediaData?.credits?.guest_stars &&
+              mediaData.credits.guest_stars.length > 0 && (
+                <div className="mt-8 space-y-4">
+                  <h3 className="text-lg font-semibold">Guest Stars</h3>
+                  {mediaData.credits.guest_stars.map((actor, index) => (
+                    <CastMember
+                      key={index}
+                      name={actor.name}
+                      role={actor.character}
+                      imageUrl={
+                        actor.profile_path
+                          ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
+                          : 'https://place-hold.it/100x100'
+                      }
+                    />
+                  ))}
+                </div>
+              )}
           </>
         )}
 
