@@ -17,6 +17,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     handleNewMovie(message as MovieData);
   } else if (message.type === 'new_tvshow') {
     handleNewTVShow(message as TVShowData);
+  } else if (message.type === 'close_panel') {
+    chrome.sidePanel.setOptions({ enabled: false });
   }
 });
 

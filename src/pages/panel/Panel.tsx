@@ -1,6 +1,6 @@
 // External Dependencies
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Star } from 'lucide-react';
 
 // Internal Dependencies
 import '@pages/panel/Panel.css';
@@ -16,19 +16,42 @@ interface MediaData {
   url?: string;
   seasonNumber?: number;
   episodeNumber?: number;
+  overview?: string;
+  vote_average?: number;
+  poster_path?: string;
+  credits?: {
+    cast: Array<{
+      name: string;
+      character: string;
+      profile_path?: string;
+    }>;
+  };
 }
 
 export default function Panel() {
   const [activeTab, setActiveTab] = useState<Tab>('cast');
   const [mediaData, setMediaData] = useState<MediaData | null>(null);
 
+  // Load saved data when panel opens
+  useEffect(() => {
+    chrome.storage.local.get(['currentMediaData'], (result) => {
+      if (result.currentMediaData) {
+        setMediaData(result.currentMediaData);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     const messageListener = (message: any) => {
       if (message.type === 'update_panel_tv_show') {
         console.log('tv show data in panel ', message.data);
+        // Save data to storage when received
+        chrome.storage.local.set({ currentMediaData: message.data });
         setMediaData(message.data);
       } else if (message.type === 'update_panel_movie') {
         console.log('data in panel ', message.data);
+        // Save data to storage when received
+        chrome.storage.local.set({ currentMediaData: message.data });
         setMediaData(message.data);
       }
     };
@@ -39,6 +62,11 @@ export default function Panel() {
       chrome.runtime.onMessage.removeListener(messageListener);
     };
   }, []);
+
+  // Handle close button click
+  const handleClose = () => {
+    chrome.runtime.sendMessage({ type: 'close_panel' });
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -57,24 +85,44 @@ export default function Panel() {
           )}
         </div>
         <div className="flex gap-4">
-          <button>
+          <button onClick={handleClose}>
             <X className="w-6 h-6" />
           </button>
         </div>
       </header>
 
+      {/* Overview Section */}
+      {mediaData && (
+        <div className="p-4 border-b border-gray-800">
+          <div className="flex gap-4">
+            {mediaData.poster_path && (
+              <img
+                src={`https://image.tmdb.org/t/p/w200${mediaData.poster_path}`}
+                alt={`${mediaData.title} poster`}
+                className="w-32 h-auto rounded-md"
+              />
+            )}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                {mediaData.vote_average && (
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                    <span className="text-sm">
+                      {mediaData.vote_average.toFixed(1)}/10
+                    </span>
+                  </div>
+                )}
+              </div>
+              {mediaData.overview && (
+                <p className="text-sm text-gray-300">{mediaData.overview}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex border-b border-gray-800">
-        <button
-          className={`px-6 py-3 ${
-            activeTab === 'in-scene'
-              ? 'border-b-2 border-white'
-              : 'text-gray-400'
-          }`}
-          onClick={() => setActiveTab('in-scene')}
-        >
-          In Scene
-        </button>
         <button
           className={`px-6 py-3 ${
             activeTab === 'cast' ? 'border-b-2 border-white' : 'text-gray-400'
@@ -95,28 +143,20 @@ export default function Panel() {
 
       {/* Content */}
       <div className="p-4 space-y-4">
-        {activeTab === 'cast' && (
+        {activeTab === 'cast' && mediaData?.credits?.cast && (
           <>
-            <CastMember
-              name="Zachary Quinto"
-              role="Peter Sullivan"
-              imageUrl="https://place-hold.it/100x100"
-            />
-            <CastMember
-              name="Penn Badgley"
-              role="Seth Bregman"
-              imageUrl="https://place-hold.it/100x100"
-            />
-            <CastMember
-              name="Paul Bettany"
-              role="Will Emerson"
-              imageUrl="https://place-hold.it/100x100"
-            />
-            <CastMember
-              name="Ashley Williams"
-              role="Heather Burke"
-              imageUrl="https://place-hold.it/100x100"
-            />
+            {mediaData.credits.cast.map((actor, index) => (
+              <CastMember
+                key={index}
+                name={actor.name}
+                role={actor.character}
+                imageUrl={
+                  actor.profile_path
+                    ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
+                    : 'https://place-hold.it/100x100'
+                }
+              />
+            ))}
           </>
         )}
 
