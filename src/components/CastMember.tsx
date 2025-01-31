@@ -19,7 +19,6 @@ export function CastMember({ name, role, imageUrl }: CastMemberProps) {
         <h3 className="text-white text-lg font-semibold">{name}</h3>
         <p className="text-gray-400">Portrays: {role}</p>
       </div>
-      <ChevronDown className="text-gray-400" />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 // External Dependencies
 import { useState, useEffect } from 'react';
-import { X, Star } from 'lucide-react';
+import { X, Star, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Internal Dependencies
 import '@pages/panel/Panel.css';
@@ -26,11 +26,25 @@ interface MediaData {
       name: string;
       character: string;
       profile_path?: string;
+      details?: {
+        biography: string;
+        birthday?: string;
+        place_of_birth?: string;
+        known_for_department?: string;
+        deathday?: string | null;
+      };
     }>;
     guest_stars?: Array<{
       name: string;
       character: string;
       profile_path?: string;
+      details?: {
+        biography: string;
+        birthday?: string;
+        place_of_birth?: string;
+        known_for_department?: string;
+        deathday?: string | null;
+      };
     }>;
   };
 }
@@ -38,6 +52,12 @@ interface MediaData {
 export default function Panel() {
   const [activeTab, setActiveTab] = useState<Tab>('cast');
   const [mediaData, setMediaData] = useState<MediaData | null>(null);
+  const [selectedActorIndex, setSelectedActorIndex] = useState<number | null>(
+    null
+  );
+  const [selectedGuestIndex, setSelectedGuestIndex] = useState<number | null>(
+    null
+  );
 
   // Load saved data when panel opens
   useEffect(() => {
@@ -67,6 +87,51 @@ export default function Panel() {
 
   const handleClose = () => {
     chrome.runtime.sendMessage({ type: 'close_panel' });
+  };
+
+  const handleActorClick = (index: number, isGuestStar: boolean = false) => {
+    if (isGuestStar) {
+      setSelectedGuestIndex(selectedGuestIndex === index ? null : index);
+      setSelectedActorIndex(null);
+    } else {
+      setSelectedActorIndex(selectedActorIndex === index ? null : index);
+      setSelectedGuestIndex(null);
+    }
+  };
+
+  const renderActorDetails = (actor: MediaData['credits']['cast'][0]) => {
+    if (!actor.details) return null;
+
+    return (
+      <div className="mt-2 p-4 bg-gray-900 rounded-md space-y-2">
+        {actor.details.birthday && (
+          <p className="text-sm">
+            <span className="font-semibold">Born:</span>{' '}
+            {actor.details.birthday}
+            {actor.details.place_of_birth &&
+              ` in ${actor.details.place_of_birth}`}
+          </p>
+        )}
+        {actor.details.deathday && (
+          <p className="text-sm">
+            <span className="font-semibold">Died:</span>{' '}
+            {actor.details.deathday}
+          </p>
+        )}
+        {actor.details.known_for_department && (
+          <p className="text-sm">
+            <span className="font-semibold">Known for:</span>{' '}
+            {actor.details.known_for_department}
+          </p>
+        )}
+        {actor.details.biography && (
+          <div>
+            <p className="text-sm font-semibold mb-1">Biography:</p>
+            <p className="text-sm text-gray-300">{actor.details.biography}</p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   console.log('mediaData', mediaData);
@@ -169,16 +234,32 @@ export default function Panel() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Cast</h3>
                 {mediaData.credits.cast.map((actor, index) => (
-                  <CastMember
-                    key={index}
-                    name={actor.name}
-                    role={actor.character}
-                    imageUrl={
-                      actor.profile_path
-                        ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
-                        : 'https://place-hold.it/100x100'
-                    }
-                  />
+                  <div key={index} className="space-y-2">
+                    <div
+                      className="cursor-pointer relative w-full"
+                      onClick={() => handleActorClick(index)}
+                    >
+                      <CastMember
+                        name={actor.name}
+                        role={actor.character}
+                        imageUrl={
+                          actor.profile_path
+                            ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
+                            : 'https://place-hold.it/100x100'
+                        }
+                      />
+                      {actor.details && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                          {selectedActorIndex === index ? (
+                            <ChevronUp className="w-5 h-5" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {selectedActorIndex === index && renderActorDetails(actor)}
+                  </div>
                 ))}
               </div>
             )}
@@ -190,16 +271,33 @@ export default function Panel() {
                 <div className="mt-8 space-y-4">
                   <h3 className="text-lg font-semibold">Guest Stars</h3>
                   {mediaData.credits.guest_stars.map((actor, index) => (
-                    <CastMember
-                      key={index}
-                      name={actor.name}
-                      role={actor.character}
-                      imageUrl={
-                        actor.profile_path
-                          ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
-                          : 'https://place-hold.it/100x100'
-                      }
-                    />
+                    <div key={index} className="space-y-2">
+                      <div
+                        className="cursor-pointer relative w-full"
+                        onClick={() => handleActorClick(index, true)}
+                      >
+                        <CastMember
+                          name={actor.name}
+                          role={actor.character}
+                          imageUrl={
+                            actor.profile_path
+                              ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
+                              : 'https://place-hold.it/100x100'
+                          }
+                        />
+                        {actor.details && (
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                            {selectedGuestIndex === index ? (
+                              <ChevronUp className="w-5 h-5" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {selectedGuestIndex === index &&
+                        renderActorDetails(actor)}
+                    </div>
                   ))}
                 </div>
               )}
