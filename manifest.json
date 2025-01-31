@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Netflix X-Ray",
+  "name": "Movie Lens",
   "description": "Displays cast and crew for the currently playing movie or show on Netflix",
   "options_ui": {
     "page": "src/pages/options/index.html"
@@ -18,7 +18,7 @@
   "host_permissions": ["http://*/*", "https://*/*", "<all_urls>"],
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*", "<all_urls>"],
+      "matches": ["<all_urls>"],
       "js": ["src/pages/content/index.ts"],
       "css": ["contentStyle.css"]
     }

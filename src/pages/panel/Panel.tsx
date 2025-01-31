@@ -49,6 +49,35 @@ interface MediaData {
   };
 }
 
+// Utility function to format date
+const formatDate = (dateString: string) => {
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  };
+  const date = new Date(dateString);
+  return date
+    .toLocaleDateString(undefined, options)
+    .replace(/(\d+)(?=\s)/, (match) => `${match}${getOrdinalSuffix(match)}`);
+};
+
+// Function to get ordinal suffix for a number
+const getOrdinalSuffix = (num: string) => {
+  const n = parseInt(num);
+  if (n % 100 >= 11 && n % 100 <= 13) return 'th';
+  switch (n % 10) {
+    case 1:
+      return 'st';
+    case 2:
+      return 'nd';
+    case 3:
+      return 'rd';
+    default:
+      return 'th';
+  }
+};
+
 export default function Panel() {
   const [activeTab, setActiveTab] = useState<Tab>('cast');
   const [mediaData, setMediaData] = useState<MediaData | null>(null);
@@ -107,7 +136,7 @@ export default function Panel() {
         {actor.details.birthday && (
           <p className="text-sm">
             <span className="font-semibold">Born:</span>{' '}
-            {actor.details.birthday}
+            {formatDate(actor.details.birthday)}
             {actor.details.place_of_birth &&
               ` in ${actor.details.place_of_birth}`}
           </p>
@@ -141,7 +170,7 @@ export default function Panel() {
       {/* Header */}
       <header className="flex items-center justify-between p-4 border-b border-gray-800">
         <div>
-          <h1 className="text-2xl font-bold">X-Ray</h1>
+          <h1 className="text-2xl font-bold">Movie Lens</h1>
           {mediaData && (
             <p className="text-sm text-gray-400">
               {mediaData.mediaType === 'tv' ? (
@@ -202,6 +231,15 @@ export default function Panel() {
               )}
             </div>
           </div>
+          {/* Add TMDB Attribution */}
+          <div className="flex items-center gap-2 mt-4 text-sm text-gray-400">
+            <span>Powered by:</span>
+            <img
+              src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg"
+              alt="TMDB Logo"
+              className="h-3"
+            />
+          </div>
         </div>
       )}
 
@@ -215,14 +253,14 @@ export default function Panel() {
         >
           Cast
         </button>
-        <button
+        {/* <button
           className={`px-6 py-3 ${
             activeTab === 'trivia' ? 'border-b-2 border-white' : 'text-gray-400'
           }`}
           onClick={() => setActiveTab('trivia')}
         >
           Trivia
-        </button>
+        </button> */}
       </div>
 
       {/* Content */}
