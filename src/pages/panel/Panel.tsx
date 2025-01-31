@@ -1,13 +1,12 @@
 // External Dependencies
 import { useState, useEffect } from 'react';
-import { X, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Star, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 
 // Internal Dependencies
 import '@pages/panel/Panel.css';
 import { CastMember } from '@src/components/CastMember';
-import { TriviaItem } from '@src/components/TriviaItem';
 
-type Tab = 'in-scene' | 'cast' | 'trivia';
+type Tab = 'cast' | 'recommendations';
 
 interface MediaData {
   mediaType: 'movie' | 'tv';
@@ -45,6 +44,18 @@ interface MediaData {
         known_for_department?: string;
         deathday?: string | null;
       };
+    }>;
+  };
+  imdb_id?: string;
+  recommendations?: {
+    results: Array<{
+      id: number;
+      title?: string;
+      name?: string;
+      poster_path?: string;
+      vote_average: number;
+      overview: string;
+      media_type?: 'movie' | 'tv';
     }>;
   };
 }
@@ -163,6 +174,44 @@ export default function Panel() {
     );
   };
 
+  const renderRecommendations = () => {
+    if (!mediaData?.recommendations?.results.length) {
+      return <p className="text-gray-400">No recommendations available.</p>;
+    }
+
+    return (
+      <div className="grid grid-cols-2 gap-4">
+        {mediaData.recommendations.results.slice(0, 6).map((item) => (
+          <div key={item.id} className="space-y-2">
+            <img
+              src={
+                item.poster_path
+                  ? `https://image.tmdb.org/t/p/w200${item.poster_path}`
+                  : 'https://place-hold.it/200x300'
+              }
+              alt={`${item.title || item.name} poster`}
+              className="w-full h-auto rounded-md"
+            />
+            <div>
+              <h3 className="font-semibold">{item.title || item.name}</h3>
+              {item.vote_average > 0 && (
+                <div className="flex items-center gap-1 mt-1">
+                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  <span className="text-sm">
+                    {item.vote_average.toFixed(1)}/10
+                  </span>
+                </div>
+              )}
+              <p className="text-sm text-gray-400 mt-1 line-clamp-2">
+                {item.overview}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   console.log('mediaData', mediaData);
 
   return (
@@ -229,9 +278,18 @@ export default function Panel() {
               {mediaData.overview && (
                 <p className="text-sm text-gray-300">{mediaData.overview}</p>
               )}
+              {mediaData.imdb_id && (
+                <a
+                  href={`https://www.imdb.com/title/${mediaData.imdb_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-sm text-yellow-400 hover:text-yellow-300 mt-2"
+                >
+                  IMDb <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
             </div>
           </div>
-          {/* Add TMDB Attribution */}
           <div className="flex items-center gap-2 mt-4 text-sm text-gray-400">
             <span>Powered by:</span>
             <img
@@ -253,14 +311,16 @@ export default function Panel() {
         >
           Cast
         </button>
-        {/* <button
+        <button
           className={`px-6 py-3 ${
-            activeTab === 'trivia' ? 'border-b-2 border-white' : 'text-gray-400'
+            activeTab === 'recommendations'
+              ? 'border-b-2 border-white'
+              : 'text-gray-400'
           }`}
-          onClick={() => setActiveTab('trivia')}
+          onClick={() => setActiveTab('recommendations')}
         >
-          Trivia
-        </button> */}
+          Recommendations
+        </button>
       </div>
 
       {/* Content */}
@@ -342,18 +402,7 @@ export default function Panel() {
           </>
         )}
 
-        {activeTab === 'trivia' && (
-          <>
-            <TriviaItem
-              text="As Jeremy Irons was ready to take on the part of CEO John Tuld, his work visa had expired prior to..."
-              category="General trivia"
-            />
-            <TriviaItem
-              text="The cast members in the pivotal boardroom scene where Jeremy Irons addresses the board member..."
-              category="General trivia"
-            />
-          </>
-        )}
+        {activeTab === 'recommendations' && renderRecommendations()}
       </div>
     </div>
   );
